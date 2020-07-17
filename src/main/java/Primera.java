@@ -1,8 +1,8 @@
 package main.java;
 
 import java.util.ArrayList;
-
-import model.prenda.Categoria;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Primera 
 {
@@ -50,30 +50,62 @@ public class Alumno
 	}
 }
 
-public enum MetodoCorreccion {
-    CON_DESCUENTO(),
+public interface MetodoCorreccion
+{
+    int corregir(Resolucion resolucion);
+}
 
-    REGLA_3_SIMPLE,
+public class ConDescuento implements MetodoCorreccion
+{
+	int descuento;
+	
+	ConDescuento(int descuento)
+	{
+		this.descuento = descuento;
+	}
+	
+	int corregir(Resolucion resolucion) {
+		return puntaje_total_respuestas() - descuento;
+	}
+}
 
-    TABLA_CONVERSION,
+public class Regla3Simple implements MetodoCorreccion
+{
+	int corregir(Resolucion resolucion) {
+		return (puntaje_total_respuestas() * 10) /puntaje_total();
+	}
+}
 
-    NOTA_MAS_ALTA_ENTRE_VARIOS_CRITERIOS,
+public class TablaConversion implements MetodoCorreccion
+{
+	private Map<int, int> tabla_conversion = new HashMap<int, int>();
 
-    PROMEDIO_ENTRE_VARIOS_CRITERIOS(Categoria.PARTE_SUPERIOR),
-    
-    private Categoria categoria;
+	TablaConversion(Map<int, int> tabla_conversion)
+	{
+		this.tabla_conversion = tabla_conversion;
+	}
+	
+	int corregir(Resolucion resolucion) {
+		return tabla_conversion.get(puntaje_total_respuestas());
+	}
+}
 
-	MetodoCorreccion(Categoria categoria) {
-        this.categoria = categoria;
-    }
+public class NotaMasAltaEntreVariosCriterios implements MetodoCorreccion
+{
+	List<MetodoCorreccion> metodos_correccion = new ArrayList<>();
+	
+	int corregir(Resolucion resolucion) {
+		return this.metodos_correccion.max(metodo_correccion -> metodos_correccion.corregir(resolucion));
+	}
+}
 
-    public Categoria getCategoria() {
-        return categoria;
-    }
-    
-    void corregir(Resolucion resolucion) {
-    	
-    }
+public class PromedioEntreVariosCriterios implements MetodoCorreccion
+{
+	List<MetodoCorreccion> metodos_correccion = new ArrayList<>();
+	
+	int corregir(Resolucion resolucion) {
+		return (this.metodos_correccion.sum(metodo_correccion -> metodos_correccion.corregir(resolucion))) / this.metodos_correccion.length();
+	}
 }
 
 public class Parcial 
@@ -93,9 +125,16 @@ public class Parcial
 		this.preguntas = preguntas;
 	}
 	
+	int puntaje_total()
+	{
+		return preguntas.stream().sum(pregunta -> pregunta.peso_especifico);
+	}
+	
 	void corregir_resoluciones()
 	{
-		this.resoluciones.stream().forEach(resolucion -> resolucion.corregir(this.metodo_correccion, this.nota_necesaria_para_aprobar));
+		this.resoluciones.stream().forEach(
+				resolucion -> resolucion.corregir(this.metodo_correccion, this.nota_necesaria_para_aprobar)
+				);
 	}
 
 }
@@ -131,9 +170,9 @@ public class Resolucion
 		nota_final = metodo_correccion.corregir(this);
 		
 		if(nota_final >= nota_necesaria_para_aprobar) {
-			aprobo = true;
+			this.aprobo = true;
 		}else {
-			aprobo = false;
+			this.aprobo = false;
 		}
 	}
 }
