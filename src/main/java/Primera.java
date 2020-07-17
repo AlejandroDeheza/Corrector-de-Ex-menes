@@ -2,6 +2,8 @@ package main.java;
 
 import java.util.ArrayList;
 
+import model.prenda.Categoria;
+
 public class Primera 
 {
 
@@ -23,7 +25,7 @@ public class Docente
 	
 	void corregir_resoluciones(Parcial parcial)
 	{
-		parcial.resoluciones.stream().forEach(resolucion -> resolucion.corregir());
+		parcial.corregir_resoluciones();
 	}
 	
 }
@@ -40,20 +42,43 @@ public class Alumno
 	void realizar_examen()
 	{
 		//las "respuestas" se hacen en la interfaz grafica
+		List<String> respuestas;
+		
 		Resolucion resolucion = Resolucion(respuestas, this);
 		
 		parcial_actual.resoluciones.add(resolucion);
 	}
 }
 
-public enum NotaAprobacion
-{
-	Cuatro, Seis
+public enum MetodoCorreccion {
+    CON_DESCUENTO(),
+
+    REGLA_3_SIMPLE,
+
+    TABLA_CONVERSION,
+
+    NOTA_MAS_ALTA_ENTRE_VARIOS_CRITERIOS,
+
+    PROMEDIO_ENTRE_VARIOS_CRITERIOS(Categoria.PARTE_SUPERIOR),
+    
+    private Categoria categoria;
+
+	MetodoCorreccion(Categoria categoria) {
+        this.categoria = categoria;
+    }
+
+    public Categoria getCategoria() {
+        return categoria;
+    }
+    
+    void corregir(Resolucion resolucion) {
+    	
+    }
 }
 
 public class Parcial 
 {
-	NotaAprobacion nota_necesaria_para_aprobar;
+	int nota_necesaria_para_aprobar;
 	
 	MetodoCorreccion metodo_correccion;
 	
@@ -61,11 +86,16 @@ public class Parcial
 	
 	private list<Resolucion> resoluciones = new ArrayList<>();
 	
-	Parcial(NotaAprobacion nota_necesaria_para_aprobar, MetodoCorreccion metodo_correccion, list<Pregunta> preguntas)
+	Parcial(int nota_necesaria_para_aprobar, MetodoCorreccion metodo_correccion, list<Pregunta> preguntas)
 	{
 		this.nota_necesaria_para_aprobar = nota_necesaria_para_aprobar;
 		this.metodo_correccion = metodo_correccion;
 		this.preguntas = preguntas;
+	}
+	
+	void corregir_resoluciones()
+	{
+		this.resoluciones.stream().forEach(resolucion -> resolucion.corregir(this.metodo_correccion, this.nota_necesaria_para_aprobar));
 	}
 
 }
@@ -86,6 +116,8 @@ public class Resolucion
 	
 	Alumno alumno;
 	
+	int nota_final;
+	
 	Bool aprobo;
 	
 	Resolucion(List<String> respuestas, Alumno alumno)
@@ -94,9 +126,14 @@ public class Resolucion
 		this.alumno = alumno;
 	}
 	
-	
-	void corregir()
+	void corregir(MetodoCorreccion metodo_correccion, int nota_necesaria_para_aprobar)
 	{
+		nota_final = metodo_correccion.corregir(this);
 		
+		if(nota_final >= nota_necesaria_para_aprobar) {
+			aprobo = true;
+		}else {
+			aprobo = false;
+		}
 	}
 }
