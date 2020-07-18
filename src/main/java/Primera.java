@@ -41,7 +41,7 @@ public class Alumno
 	
 	void realizar_examen()
 	{
-		//las "respuestas" se hacen en la interfaz grafica
+		//las "respuestas" se obtienen de la interfaz de usuario
 		List<String> respuestas;
 		
 		Resolucion resolucion = Resolucion(respuestas, this);
@@ -65,14 +65,14 @@ public class ConDescuento implements MetodoCorreccion
 	}
 	
 	int corregir(Resolucion resolucion) {
-		return puntaje_total_respuestas() - descuento;
+		return resolucion.puntaje_total_resolucion() - descuento;
 	}
 }
 
 public class Regla3Simple implements MetodoCorreccion
 {
 	int corregir(Resolucion resolucion) {
-		return (puntaje_total_respuestas() * 10) /puntaje_total();
+		return (resolucion.puntaje_total_resolucion() * 10) /puntaje_total_parcial();
 	}
 }
 
@@ -86,7 +86,7 @@ public class TablaConversion implements MetodoCorreccion
 	}
 	
 	int corregir(Resolucion resolucion) {
-		return tabla_conversion.get(puntaje_total_respuestas());
+		return tabla_conversion.get(resolucion.puntaje_total_resolucion());
 	}
 }
 
@@ -141,12 +141,40 @@ public class Parcial
 
 public class Pregunta 
 {
-	String enunciado; // el tipo de la pregunta podria estar incluido en elñ enunciado
-	
+	String enunciado;
 	int peso_especifico;
+}
+
+public class VerdaderoFalso extends Pregunta
+{
+	bool respuesta_correcta;	
 	
-	//TipoPregunta tipo_pregunta;
+	bool laRespuestaEsCorrecta(bool respuesta)
+	{
+		return this.respuesta_correcta == respuesta;
+	}
+}
+
+public class MultipleChoice extends Pregunta
+{
+	int respuesta_correcta;
 	
+	bool laRespuestaEsCorrecta(int respuesta)
+	{
+		return this.respuesta_correcta == respuesta;
+	}
+}
+
+public class Desarrollar extends Pregunta
+{
+	String respuesta_correcta; 
+	
+	//esto seguramente no tenga sentido ...
+	//es probable que el docente lo tenga que corregir a mano
+	bool laRespuestaEsCorrecta(String respuesta)
+	{
+		return this.respuesta_correcta.equals(respuesta);
+	}
 }
 
 public class Resolucion 
@@ -163,6 +191,15 @@ public class Resolucion
 	{
 		this.respuestas = respuestas;
 		this.alumno = alumno;
+	}
+	
+	int puntaje_total_resolucion()
+	{
+		//de alguna manera se obtienen los puntajes de las respuestas
+		//creeria que hay que consultarle a los usuarios/docentes, esto no se especifica en el enunciado
+		
+		//tendria sentido que las preguntas de verdadero/falso y multiplichoice tengan seteadas las respuestas correctas
+		//pero las preguntas a desarrollar, no.
 	}
 	
 	void corregir(MetodoCorreccion metodo_correccion, int nota_necesaria_para_aprobar)
