@@ -1,0 +1,80 @@
+@startuml
+
+interface MetodoCorreccion{
+    +int corregir(int puntaje_total_resolucion, int puntaje_total_parcial)
+}
+
+class ConDescuento implements MetodoCorreccion{
+	-int descuento
+	
+	+ConDescuento(int descuento)
+	+int corregir(int puntaje_total_resolucion, int puntaje_total_parcial)
+}
+
+class Regla3Simple implements MetodoCorreccion{
+	+int corregir(int puntaje_total_resolucion, int puntaje_total_parcial)
+}
+
+class TablaConversion implements MetodoCorreccion{
+	-Map<int, int> tabla_conversion
+
+	+TablaConversion(Map<int, int> tabla_conversion)
+
+	+int corregir(int puntaje_total_resolucion, int puntaje_total_parcial)
+}
+
+class NotaMasAltaEntreVariosCriterios implements MetodoCorreccion{
+	-List<MetodoCorreccion> metodos_correccion
+	
+	+int corregir(int puntaje_total_resolucion, int puntaje_total_parcialn)
+}
+
+NotaMasAltaEntreVariosCriterios --> "*" MetodoCorreccion: metodo_correccion
+
+class PromedioEntreVariosCriterios implements MetodoCorreccion{
+	-List<MetodoCorreccion> metodos_correccion
+	
+	+int corregir(int puntaje_total_resolucion, int puntaje_total_parcial)
+}
+
+PromedioEntreVariosCriterios --> "*" MetodoCorreccion: metodo_correccion
+
+class Parcial {
+	-int nota_necesaria_para_aprobar
+	-MetodoCorreccion metodo_correccion
+	-list<Pregunta> preguntas
+	
+	+Parcial(int nota_necesaria_para_aprobar, MetodoCorreccion metodo_correccion, list<Pregunta> preguntas)
+	+int puntaje_total_parcial()
+	+int obtener_nota_final(int puntaje_total_resolucion)
+}
+
+Parcial --> "1" MetodoCorreccion: metodo_correccion
+Parcial --> "*" Pregunta: preguntas
+
+class Pregunta {
+	-String enunciado
+	-int peso_especifico
+	-String respuesta_correcta	
+	
+	+bool laRespuestaEsCorrecta(String respuesta)
+	+int puntaje_respuesta(String respuesta)
+}
+
+
+class Resolucion {
+	-List<int> puntajes_por_respuestas
+	-Parcial parcial_asociado
+	-Alumno alumno
+	-int nota_final
+	-Bool aprobo
+	
+	+Resolucion(List<int> puntajes_por_respuestas, Parcial parcial_asociado, Alumno alumno)
+	+int puntaje_total_resolucion()
+	+void corregir()
+}
+
+Resolucion --> "1" Parcial: parcial_asociado
+Resolucion --> "1" Alumno: alumno
+
+@enduml

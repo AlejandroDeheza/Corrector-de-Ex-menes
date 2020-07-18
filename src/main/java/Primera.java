@@ -13,200 +13,206 @@ public class Docente
 {
 	private list<Alumno> alumnos = new ArrayList<>();
 	
-	Parcial armar_parcial(int nota_necesaria, MetodoCorreccion metodo, list<Pregunta> preguntas)
+	private list<Resolucion> resoluciones = new ArrayList<>();
+	
+	private list<Resolucion> resolucionesCorregidas = new ArrayList<>();
+	
+	public Parcial armar_parcial(int nota_necesaria, MetodoCorreccion metodo, list<Pregunta> preguntas)
 	{
 		return Parcial(nota_necesaria, metodo, preguntas);
 	}
 	
-	void dar_parcial_a_alumnos(Parcial parcial)
+	public void dar_parcial_a_alumnos(Parcial parcial)
 	{
 		this.alumnos.stream().forEach(alumno -> alumno.recibir_parcial(parcial));
 	}
 	
-	void corregir_resoluciones(Parcial parcial)
+	public void recibir_resolucion(Resolucion resolucion)
 	{
-		parcial.corregir_resoluciones();
+		this.resoluciones.add(resolucion);
 	}
 	
+	public void corregir_resoluciones(Parcial parcial)
+	{
+		this.resoluciones.stream().forEach(resolucion -> resolucion.corregir());
+		this.resolucionesCorregidas.addAll(this.resoluciones);
+		this.resoluciones.clean();
+	}
 }
 
 public class Alumno 
 {
-	Parcial parcial_actual;
+	private Docente docente;
 	
-	void recibir_parcial(Parcial parcial)
+	private Parcial parcial_actual;
+	
+	public void recibir_parcial(Parcial parcial)
 	{
 		this.parcial_actual = parcial;
 	}
 	
-	void realizar_examen()
+	public Resolucion realizar_examen()
 	{
-		//las "respuestas" se obtienen de la interfaz de usuario
-		List<String> respuestas;
+		List<int> puntajes_por_respuestas = new ArrayList<>();
 		
-		Resolucion resolucion = Resolucion(respuestas, this);
+		// esto lo hace el alumno hasta que responde todas las preguntas
+		int puntaje = pregunta.puntaje_respuesta(respuesta);
+		puntajes_por_respuestas.add(puntaje);
+
 		
-		parcial_actual.resoluciones.add(resolucion);
+		
+		return Resolucion(puntajes_por_respuestas, parcial_actual, this);
+	}
+	
+	public void entregar_resolucion(Resolucion resolucion)
+	{
+		this.docente.recibir_resolucion(resolucion);
 	}
 }
 
 public interface MetodoCorreccion
 {
-    int corregir(Resolucion resolucion);
+	public int corregir(int puntaje_total_resolucion, int puntaje_total_parcial);
 }
 
 public class ConDescuento implements MetodoCorreccion
 {
-	int descuento;
+	private int descuento;
 	
-	ConDescuento(int descuento)
+	public ConDescuento(int descuento)
 	{
 		this.descuento = descuento;
 	}
 	
-	int corregir(Resolucion resolucion) {
-		return resolucion.puntaje_total_resolucion() - descuento;
+	public int corregir(int puntaje_total_resolucion, int puntaje_total_parcial) {
+		return puntaje_total_resolucion - this.descuento;
 	}
 }
 
 public class Regla3Simple implements MetodoCorreccion
 {
-	int corregir(Resolucion resolucion) {
-		return (resolucion.puntaje_total_resolucion() * 10) /puntaje_total_parcial();
+	public int corregir(int puntaje_total_resolucion, int puntaje_total_parcial) {
+		return (puntaje_total_resolucion * 10) /puntaje_total_parcial;
 	}
 }
 
 public class TablaConversion implements MetodoCorreccion
 {
-	private Map<int, int> tabla_conversion = new HashMap<int, int>();
+	private Map<int, int> tabla_conversiones = new HashMap<int, int>();
 
-	TablaConversion(Map<int, int> tabla_conversion)
+	public TablaConversion(Map<int, int> tabla_conversiones)
 	{
-		this.tabla_conversion = tabla_conversion;
+		this.tabla_conversiones = tabla_conversiones;
 	}
 	
-	int corregir(Resolucion resolucion) {
-		return tabla_conversion.get(resolucion.puntaje_total_resolucion());
+	public int corregir(int puntaje_total_resolucion, int puntaje_total_parcial) {
+		return this.tabla_conversiones.get(puntaje_total_resolucion);
 	}
 }
 
 public class NotaMasAltaEntreVariosCriterios implements MetodoCorreccion
 {
-	List<MetodoCorreccion> metodos_correccion = new ArrayList<>();
+	private List<MetodoCorreccion> metodos_correccion = new ArrayList<>();
 	
-	int corregir(Resolucion resolucion) {
-		return this.metodos_correccion.max(metodo_correccion -> metodos_correccion.corregir(resolucion));
+	public int corregir(int puntaje_total_resolucion, int puntaje_total_parcialn) {
+		return this.metodos_correccion.max(metodo_correccion -> metodos_correccion.corregir(puntaje_total_resolucion, puntaje_total_parcialn));
 	}
 }
 
 public class PromedioEntreVariosCriterios implements MetodoCorreccion
 {
-	List<MetodoCorreccion> metodos_correccion = new ArrayList<>();
+	private List<MetodoCorreccion> metodos_correccion = new ArrayList<>();
 	
-	int corregir(Resolucion resolucion) {
-		return (this.metodos_correccion.sum(metodo_correccion -> metodos_correccion.corregir(resolucion))) / this.metodos_correccion.length();
+	public int corregir(int puntaje_total_resolucion, int puntaje_total_parcial) {
+		return (this.metodos_correccion.sum(metodo_correccion -> metodos_correccion.corregir(puntaje_total_resolucion, puntaje_total_parcialn))) / this.metodos_correccion.length();
 	}
 }
 
 public class Parcial 
 {
-	int nota_necesaria_para_aprobar;
+	private int nota_necesaria_para_aprobar;
 	
-	MetodoCorreccion metodo_correccion;
+	private MetodoCorreccion metodo_correccion;
 	
 	private list<Pregunta> preguntas = new ArrayList<>();
 	
-	private list<Resolucion> resoluciones = new ArrayList<>();
-	
-	Parcial(int nota_necesaria_para_aprobar, MetodoCorreccion metodo_correccion, list<Pregunta> preguntas)
+	public Parcial(int nota_necesaria_para_aprobar, MetodoCorreccion metodo_correccion, list<Pregunta> preguntas)
 	{
 		this.nota_necesaria_para_aprobar = nota_necesaria_para_aprobar;
 		this.metodo_correccion = metodo_correccion;
 		this.preguntas = preguntas;
 	}
 	
-	int puntaje_total()
-	{
-		return preguntas.stream().sum(pregunta -> pregunta.peso_especifico);
+	public int get_nota_necesaria_para_aprobar() {
+		return this.nota_necesaria_para_aprobar;
 	}
 	
-	void corregir_resoluciones()
+	public int puntaje_total_parcial()
 	{
-		this.resoluciones.stream().forEach(
-				resolucion -> resolucion.corregir(this.metodo_correccion, this.nota_necesaria_para_aprobar)
-				);
+		return this.preguntas.stream().sum(pregunta -> pregunta.get_peso_especifico());
 	}
-
+	
+	public int obtener_nota_final(int puntaje_total_resolucion)
+	{
+		return this.metodo_correccion.corregir(puntaje_total_resolucion, this.puntaje_total_parcial());
+	}
 }
 
 public class Pregunta 
 {
-	String enunciado;
-	int peso_especifico;
-}
-
-public class VerdaderoFalso extends Pregunta
-{
-	bool respuesta_correcta;	
+	private String enunciado;
+	private int peso_especifico;
+	private String respuesta_correcta;	
 	
-	bool laRespuestaEsCorrecta(bool respuesta)
-	{
-		return this.respuesta_correcta == respuesta;
+	public int get_peso_especifico() {
+		return this.peso_especifico;
 	}
-}
-
-public class MultipleChoice extends Pregunta
-{
-	int respuesta_correcta;
 	
-	bool laRespuestaEsCorrecta(int respuesta)
-	{
-		return this.respuesta_correcta == respuesta;
-	}
-}
-
-public class Desarrollar extends Pregunta
-{
-	String respuesta_correcta; 
-	
-	//esto seguramente no tenga sentido ...
-	//es probable que el docente lo tenga que corregir a mano
-	bool laRespuestaEsCorrecta(String respuesta)
+	public bool laRespuestaEsCorrecta(String respuesta)
 	{
 		return this.respuesta_correcta.equals(respuesta);
 	}
+	
+	public int puntaje_respuesta(String respuesta)
+	{
+		if(this.laRespuestaEsCorrecta(respuesta)) {
+			return this.peso_especifico;
+		}else {
+			return 0;
+		}
+	}
 }
+
 
 public class Resolucion 
 {
-	List<String> respuestas = new ArrayList<>();
+	private List<int> puntajes_por_respuestas = new ArrayList<>();
 	
-	Alumno alumno;
+	private Parcial parcial_asociado;
 	
-	int nota_final;
+	private Alumno alumno;
 	
-	Bool aprobo;
+	private int nota_final;
 	
-	Resolucion(List<String> respuestas, Alumno alumno)
+	private Bool aprobo;
+	
+	public Resolucion(List<int> puntajes_por_respuestas, Parcial parcial_asociado, Alumno alumno)
 	{
-		this.respuestas = respuestas;
+		this.puntajes_por_respuestas = puntajes_por_respuestas;
+		this.parcial_asociado = parcial_asociado;
 		this.alumno = alumno;
 	}
 	
-	int puntaje_total_resolucion()
+	public int puntaje_total_resolucion()
 	{
-		//de alguna manera se obtienen los puntajes de las respuestas
-		//creeria que hay que consultarle a los usuarios/docentes, esto no se especifica en el enunciado
-		
-		//tendria sentido que las preguntas de verdadero/falso y multiplichoice tengan seteadas las respuestas correctas
-		//pero las preguntas a desarrollar, no.
+		return this.puntajes_por_respuestas.sum();
 	}
 	
-	void corregir(MetodoCorreccion metodo_correccion, int nota_necesaria_para_aprobar)
+	public void corregir()
 	{
-		nota_final = metodo_correccion.corregir(this);
+		this.nota_final = this.parcial_asociado.obtener_nota_final(this.puntaje_total_resolucion());
 		
-		if(nota_final >= nota_necesaria_para_aprobar) {
+		if(this.nota_final >= this.parcial_asociado.get_nota_necesaria_para_aprobar()) {
 			this.aprobo = true;
 		}else {
 			this.aprobo = false;
